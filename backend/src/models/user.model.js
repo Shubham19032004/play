@@ -30,7 +30,7 @@ const userSchema = new Schema(
       lowecase: true,
       trim: true,
     },
-    coverimg: {
+    coverImage: {
       type: String,
       lowecase: true,
       trim: true,
@@ -55,7 +55,7 @@ const userSchema = new Schema(
 );
 userSchema.pre("save", async function (next) {
   if (!this.isModified("password")) return next();
-  this.password = bcrypt.hash(this.password);
+  this.password = await bcrypt.hash(this.password);
   next();
 });
 userSchema.method.isPasswordCorrect = async function (password) {
