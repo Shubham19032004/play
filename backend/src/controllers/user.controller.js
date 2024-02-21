@@ -9,11 +9,11 @@ const generateAccessAndRefreshTokens = async (userId) => {
   try {
     const user = await User.findById(userId);
     const accesToken = user.generateAccessToken();
-    const refershToken = user.generateRefreshToken();
-    user.refreshToken = refershToken;
+    const refreshToken = user.generateRefreshToken();
+    user.refreshToken = refreshToken;
     await user.save({ validateBeforeSave: false });
 
-    return { accesToken, refershToken };
+    return { accesToken, refreshToken };
   } catch (error) {
     throw new ApiError(
       500,
@@ -87,12 +87,19 @@ const registerUser = asyncHandler(async (req, res) => {
 
 // login
 const loginUser = asyncHandler(async (req, res) => {
-  const { email, password } = res.body;
+  const email = req.body.email;
+  console.log(email)
+  const password = req.body.password;
 
-  if ([email, password].some((field) => field?.trim() === "")) {
+  if (email==undefined ||password==undefined) {
     throw new ApiError(400, " eamil and password is required for login");
   }
-  const user = await User.findOne({ email: email });
+
+
+  const user = await User.findOne({
+    email: email,
+  });
+  console.log(user);
   if (!user) {
     throw new ApiError(401, "User not found");
   }
@@ -104,7 +111,7 @@ const loginUser = asyncHandler(async (req, res) => {
     user._id
   );
   const loggedInUser = await User.findById(user._id).select(
-    "-password -refershToken"
+    "-password -refreshToken"
   );
 
   //   cookies
@@ -115,7 +122,7 @@ const loginUser = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .cookie("accessToken", accesToken, options)
-    .cookie("refershToken", refershToken, options)
+    .cookie("refreshToken", refershToken, options)
     .json(
       new ApiResponse(
         200,
