@@ -5,7 +5,7 @@ import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import jwt from "jsonwebtoken";
 // Genrate Acess And Refresh Token
-const generateAccessAndRefreshTokens = async (userId) => {
+const generateAccessAndRefereshTokens = async (userId) => {
   try {
     const user = await User.findById(userId);
     const accesToken = user.generateAccessToken();
@@ -103,7 +103,7 @@ const loginUser = asyncHandler(async (req, res) => {
   if (!passwordMatch) {
     throw new ApiError(401, "Invalid Password");
   }
-  const { accesToken, refershToken } = await generateAccessAndRefreshTokens(
+  const { accesToken, refreshToken } = await generateAccessAndRefreshTokens(
     user._id
   );
   const loggedInUser = await User.findById(user._id).select(
@@ -118,14 +118,14 @@ const loginUser = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .cookie("accessToken", accesToken, options)
-    .cookie("refreshToken", refershToken, options)
+    .cookie("refreshToken", refreshToken, options)
     .json(
       new ApiResponse(
         200,
         {
           user: loggedInUser,
           accesToken,
-          refershToken,
+          refreshToken,
         },
         "user logged in Successfully"
       )
@@ -159,51 +159,53 @@ const logoutUser = asyncHandler(async (req, res) => {
 });
 
 // RegreshAccessToken
-const refershAccessToken = asyncHandler(async (req, res) => {
-  const incomingrefershToken =
-    res.cookies.refershToken || req.body.refershToken;
+const refreshAccessToken = asyncHandler(async (req, res) => {
+  const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
 
-  if (!incomingrefershToken) {
-    throw new ApiError(
-      400,
-      "Incoming Refersh Token not found unauthorized Request "
-    );
+  if (!incomingRefreshToken) {
+      throw new ApiError(401, "unauthorized request")
   }
+
   try {
-    const decodedRefershToken = jwt.verify(
-      incomingrefershToken,
-      process.env.ACCESS_TOKEN_SECRET
-    );
-    const user = await User.findById(decodedRefershToken?._id);
-
-    if (!user) {
-      throw new ApiError(401, "Invaild refersh Token");
-    }
-    if (incomingrefershToken !== user?.refreshToken) {
-      throw new ApiError(401, " refersh token is expired ");
-    }
-    const options = {
-      httpOnly: true,
-      secure: true,
-    };
-    const { accessToken, newRefreshToken } =
-      await generateAccessAndRefreshTokens(user._id);
-
-    return res
+      const decodedToken = jwt.verify(
+          incomingRefreshToken,
+          process.env.REFRESH_TOKEN_SECRET
+      )
+  
+      const user = await User.findById(decodedToken?._id)
+  
+      if (!user) {
+          throw new ApiError(401, "Invalid refresh token")
+      }
+  
+      if (incomingRefreshToken !== user?.refreshToken) {
+          throw new ApiError(401, "Refresh token is expired or used")
+          
+      }
+  
+      const options = {
+          httpOnly: true,
+          secure: true
+      }
+  
+      const {accessToken, newRefreshToken} = await generateAccessAndRefereshTokens(user._id)
+  
+      return res
       .status(200)
-      .cookie("accessToken", accessToken)
-      .cookie("refershToken", newRefreshToken)
+      .cookie("accessToken", accessToken, options)
+      .cookie("refreshToken", newRefreshToken, options)
       .json(
-        new ApiResponse(
-          200,
-          { accessToken, refreshToken: newRefreshToken },
-          "Access token refreshed"
-        )
-      );
+          new ApiResponse(
+              200, 
+              {accessToken, refreshToken: newRefreshToken},
+              "Access token refreshed"
+          )
+      )
   } catch (error) {
-    throw new ApiError(401, error?.message || "Invalid refersh token");
+      throw new ApiError(401, error?.message || "Invalid refresh token")
   }
-});
+
+})
 
 // Change user Password
 
@@ -425,7 +427,7 @@ export {
   updateUserAvatar,
   loginUser,
   logoutUser,
-  refershAccessToken,
+  refreshAccessToken,
   getCurrentUser,
   changeCurrentPassword,
   updateAccountDetails,
