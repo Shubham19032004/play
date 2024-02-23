@@ -364,14 +364,14 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
   }
   return res
     .status(200)
-    .json(new ApiError(200, channel[0], "channel data fetch"));
+    .json(new ApiResponse(200, channel[0], "channel data fetch"));
 });
 
 const getWatchHistory = asyncHandler(async (req, res) => {
   const user = await User.aggregate([
     {
       $match: {
-        _id: new moogiise.Types.ObjectId(req.user._id),
+        _id: new mongoose.Types.ObjectId(req.user._id),
       },
     },
     {
